@@ -46,7 +46,7 @@ namespace CRUDHierarchy
 
         private void GetFilters()
         {
-            Type[] fileServices = Assembly.GetExecutingAssembly().GetTypes().Where(t => t.IsSubclassOf(typeof(IFileService))).ToArray();
+            Type[] fileServices = Assembly.GetExecutingAssembly().GetTypes().Where(t => typeof(IFileService).IsAssignableFrom(t) && !t.IsInterface).ToArray();
             string[] formatAttributes = fileServices.Select(fs => ((SerializationFormatAttribute)fs.GetCustomAttribute(typeof(SerializationFormatAttribute))).FilterString).ToArray();
             filters = string.Join("|", formatAttributes);
         }

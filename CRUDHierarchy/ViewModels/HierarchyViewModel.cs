@@ -234,7 +234,9 @@ namespace CRUDHierarchy
             SelectedInstance = null;
         }
 
-        
+        /// <summary>
+        /// Serialize the Instances collection to a choosen format
+        /// </summary>
         private void Save()
         {
             if (dialogService.SaveFileDialog() == true)
@@ -243,6 +245,20 @@ namespace CRUDHierarchy
                      ((SerializationFormatAttribute)fs.GetCustomAttribute(typeof(SerializationFormatAttribute))).FilterString.EndsWith(Path.GetExtension(dialogService.FilePath)));
                 IFileService fileService = Activator.CreateInstance(fileServiceType) as IFileService;
                 fileService.Save<CRUD>(dialogService.FilePath, Instances.ToList());
+            }
+        }
+
+        private void Load()
+        {
+            if (dialogService.OpenFileDialog() == true)
+            {
+                Type fileServiceType = fileServices.Single(fs =>
+                     ((SerializationFormatAttribute)fs.GetCustomAttribute(typeof(SerializationFormatAttribute))).FilterString.EndsWith(Path.GetExtension(dialogService.FilePath)));
+                IFileService fileService = Activator.CreateInstance(fileServiceType) as IFileService;
+
+                //Instances = null;
+                selectedInstance = null;
+                Instances = new ObservableCollection<CRUD>(fileService.Open<CRUD>(dialogService.FilePath));
             }
         }
         
@@ -259,9 +275,11 @@ namespace CRUDHierarchy
             CreateCommand = new RelayCommand<object>(obj => Create(), obj => AreFieldsFilled());
             UpdateCommand = new RelayCommand<object>(obj => Update(), obj => CanUpdate());
             DeleteCommand = new RelayCommand<object>(obj => Delete(), obj => CanDelete());
-            this.dialogService = dialogService;
+            SaveCommand = new RelayCommand<object>(obj => Save(), obj => CanSave());
+            LoadCommand = new RelayCommand<object>(obj => Load());
 
-            fileServices = Assembly.GetExecutingAssembly().GetTypes().Where(t => t.IsSubclassOf(typeof(IFileService))).ToArray();
+            this.dialogService = dialogService;
+            fileServices = Assembly.GetExecutingAssembly().GetTypes().Where(t => typeof(IFileService).IsAssignableFrom(t) && !t.IsInterface).ToArray();
         }
         #endregion
     }
