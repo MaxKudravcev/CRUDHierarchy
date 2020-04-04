@@ -8,13 +8,10 @@ namespace CRUDHierarchy
     /// </summary>
     class SerializationFormatAttribute : Attribute
     {
-        public string Description { get; set; }
-        public string Extension { get; set; }
-
-        public SerializationFormatAttribute(string description, string extension)
+        public string FilterString { get; set; }
+        public SerializationFormatAttribute(string dialogFilter)
         {
-            this.Description = description;
-            this.Extension = extension;
+            this.FilterString = dialogFilter;
         }
     }
 }

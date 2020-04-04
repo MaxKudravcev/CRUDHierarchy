@@ -24,7 +24,7 @@ namespace CRUDHierarchy
         {
             InitializeComponent();
 
-            this.DataContext = new HierarchyViewModel();
+            this.DataContext = new HierarchyViewModel(new DefaultSerializationDialogService());
         }
 
         private void InstancesListView_SelectionChanged(object sender, SelectionChangedEventArgs e)

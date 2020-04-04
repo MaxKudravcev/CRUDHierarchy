@@ -4,6 +4,8 @@ using System;
 using System.Reflection;
 using System.Windows.Input;
 using System.Collections.Generic;
+using Microsoft.Win32;
+using System.IO;
 
 namespace CRUDHierarchy
 {
@@ -28,7 +30,12 @@ namespace CRUDHierarchy
 
         //A collection of all instances, that were created
         public ObservableCollection<CRUD> Instances { get; set; }
+        
+        //All available FileServices
+        private Type[] fileServices;
 
+        //Current DialogService
+        private IDialogService dialogService;
         #endregion
 
 
@@ -175,6 +182,15 @@ namespace CRUDHierarchy
         }
 
         /// <summary>
+        /// Check if there are some instances that can be saved
+        /// </summary>
+        /// <returns></returns>
+        private bool CanSave()
+        {
+            return Instances.Count > 0;
+        }
+
+        /// <summary>
         /// Create an instance of the selected type and pass a list of arguments (got from View) to a Create metod
         /// </summary>
         private void Create()
@@ -218,12 +234,24 @@ namespace CRUDHierarchy
             SelectedInstance = null;
         }
 
+        
+        private void Save()
+        {
+            if (dialogService.SaveFileDialog() == true)
+            {
+                Type fileServiceType = fileServices.Single(fs => 
+                     ((SerializationFormatAttribute)fs.GetCustomAttribute(typeof(SerializationFormatAttribute))).FilterString.EndsWith(Path.GetExtension(dialogService.FilePath)));
+                IFileService fileService = Activator.CreateInstance(fileServiceType) as IFileService;
+                fileService.Save<CRUD>(dialogService.FilePath, Instances.ToList());
+            }
+        }
+        
         #endregion
 
 
 
         #region Constructor
-        public HierarchyViewModel()
+        public HierarchyViewModel(IDialogService dialogService)
         {
             GetClasses();
             Fields = new ObservableCollection<Field>();
@@ -231,6 +259,9 @@ namespace CRUDHierarchy
             CreateCommand = new RelayCommand<object>(obj => Create(), obj => AreFieldsFilled());
             UpdateCommand = new RelayCommand<object>(obj => Update(), obj => CanUpdate());
             DeleteCommand = new RelayCommand<object>(obj => Delete(), obj => CanDelete());
+            this.dialogService = dialogService;
+
+            fileServices = Assembly.GetExecutingAssembly().GetTypes().Where(t => t.IsSubclassOf(typeof(IFileService))).ToArray();
         }
         #endregion
     }

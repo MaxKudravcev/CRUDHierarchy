@@ -63,23 +63,25 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="Model\ClassDescriptionAttribute.cs" />
-    <Compile Include="Model\Serialization\BinarySerializer.cs" />
-    <Compile Include="Model\Serialization\ISerializer.cs" />
-    <Compile Include="Model\Serialization\SerializationFormatAttribute.cs" />
-    <Compile Include="Model\Serialization\XMLSerializer.cs" />
+    <Compile Include="ViewModels\FileServices\SerializationFormatAttribute.cs" />
     <Compile Include="Model\Weapons\Ammo.cs" />
     <Compile Include="Model\Weapons\CRUD.cs" />
-    <Compile Include="ViewModels\AmmoMultiConverter.cs" />
+    <Compile Include="ViewModels\Converters\AmmoMultiConverter.cs" />
     <Compile Include="ViewModels\BaseViewModel.cs" />
-    <Compile Include="ViewModels\InstancesToNameConverter.cs" />
-    <Compile Include="ViewModels\ObjectToBoolConverter.cs" />
+    <Compile Include="ViewModels\Converters\InstancesToNameConverter.cs" />
+    <Compile Include="ViewModels\Converters\ObjectToBoolConverter.cs" />
+    <Compile Include="ViewModels\DialogServices\DefaultSerializationDialogService.cs" />
+    <Compile Include="ViewModels\DialogServices\IDialogService.cs" />
+    <Compile Include="ViewModels\FileServices\BinaryFileService.cs" />
+    <Compile Include="ViewModels\FileServices\IFileService.cs" />
+    <Compile Include="ViewModels\FileServices\XMLFileService.cs" />
     <Compile Include="ViewModels\RelayCommand.cs" />
-    <Compile Include="ViewModels\EnumFieldToStringArrConverter.cs" />
+    <Compile Include="ViewModels\Converters\EnumFieldToStringArrConverter.cs" />
     <Compile Include="ViewModels\Field.cs" />
     <Compile Include="ViewModels\FieldDataTemplateSelector.cs" />
     <Compile Include="ViewModels\HierarchyViewModel.cs" />
-    <Compile Include="ViewModels\TypeToClassNameConverter.cs" />
-    <Compile Include="ViewModels\ValueToVisibilityConverter.cs" />
+    <Compile Include="ViewModels\Converters\TypeToClassNameConverter.cs" />
+    <Compile Include="ViewModels\Converters\ValueToVisibilityConverter.cs" />
     <Page Include="View\MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
