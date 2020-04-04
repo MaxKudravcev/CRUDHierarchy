@@ -1,5 +1,10 @@
-﻿namespace CRUDHierarchy
+﻿using System;
+using System.Runtime.Serialization;
+
+namespace CRUDHierarchy
 {
+    [Serializable]
+    [DataContract]
     abstract class Firearm : Weapon
     {
         public enum Barrel
@@ -19,8 +24,11 @@
             _50BM
         }
 
+        [DataMember]
         protected int rateOfFire;
+        [DataMember]
         protected Barrel barrel;
+        [DataMember]
         protected int magCapacity;
     }
 }

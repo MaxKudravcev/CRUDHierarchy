@@ -43,6 +43,7 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
+    <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.Xml" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Core" />
@@ -62,6 +63,10 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="Model\ClassDescriptionAttribute.cs" />
+    <Compile Include="Model\Serialization\BinarySerializer.cs" />
+    <Compile Include="Model\Serialization\ISerializer.cs" />
+    <Compile Include="Model\Serialization\SerializationFormatAttribute.cs" />
+    <Compile Include="Model\Serialization\XMLSerializer.cs" />
     <Compile Include="Model\Weapons\Ammo.cs" />
     <Compile Include="Model\Weapons\CRUD.cs" />
     <Compile Include="ViewModels\AmmoMultiConverter.cs" />

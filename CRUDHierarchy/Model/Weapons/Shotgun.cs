@@ -1,6 +1,11 @@
-﻿namespace CRUDHierarchy
+﻿using System;
+using System.Runtime.Serialization;
+
+namespace CRUDHierarchy
 {
+    [Serializable]
     [ClassDescription("Shotgun")]
+    [DataContract]
     class Shotgun : Firearm
     {
         public enum Type
@@ -10,7 +15,9 @@
             SemiAutomatic
         }
 
+        [DataMember]
         private ShotgunAmmo ammo;
+        [DataMember]
         private Type type;
     }
 

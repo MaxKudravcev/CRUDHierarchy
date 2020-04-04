@@ -33,13 +33,17 @@ namespace CRUDHierarchy
 
 
 
-        #region CRUD commands
+        #region Commands
         //Commands for creating, updating and deleting instances
         public ICommand CreateCommand { get; set; }
 
         public ICommand UpdateCommand { get; set; }
 
         public ICommand DeleteCommand { get; set; }
+
+        public ICommand LoadCommand { get; set; }
+
+        public ICommand SaveCommand { get; set; }
         #endregion
 
 

@@ -1,6 +1,11 @@
-﻿namespace CRUDHierarchy
+﻿using System;
+using System.Runtime.Serialization;
+
+namespace CRUDHierarchy
 {
+    [Serializable]
     [ClassDescription("Melee weapon")]
+    [DataContract]
     class Melee : Weapon
     {
         public enum Impact
@@ -11,7 +16,9 @@
             StabbingAndPiercing
         }
 
+        [DataMember]
         private int length;
+        [DataMember]
         private Impact impact;
     }
 }
