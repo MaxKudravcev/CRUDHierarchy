@@ -9,7 +9,15 @@ namespace CRUDHierarchy
     {
         public List<T> Open<T>(string filename)
         {
-            throw new System.NotImplementedException();
+            CustomSerializer customSerializer = new CustomSerializer(typeof(List<T>));
+            List<T> objects = new List<T>();
+
+            using (FileStream fs = new FileStream(filename, FileMode.Open))
+            {
+                objects = customSerializer.Deserialize(fs) as List<T>;
+            }
+
+            return objects;
         }
 
         public void Save<T>(string filename, List<T> objects)

@@ -13,11 +13,11 @@ namespace CRUDHierarchy
      * 
      * CLASS: <class>Type: fields... </class>
      * 
-     * EXAMPLE: <class>Person:<field>Name:string:Vasya</field><field>Age:int:228</field></class>
+     * EXAMPLE: <class>Person<field>Name:string:Vasya</field><field>Age:int:228</field></class>
      * 
-     * IEnumerable: <array>Type:<element> element </element> ... </array>
+     * IEnumerable: <array>Type<element> element </element> ... </array>
      * 
-     * EXAMPLE: <array>Person:<class>Person:<field>Name:string:Vasya</field><field>Age:int:228</field></class><class>Person:<field>Name:string:Vasya</field><field>Age:int:228</field></class></array>
+     * EXAMPLE: <array>Person<class>Person<field>Name:string:Vasya</field><field>Age:int:228</field></class><class>Person<field>Name:string:Vasya</field><field>Age:int:228</field></class></array>
      * 
      * 
      */
@@ -47,7 +47,7 @@ namespace CRUDHierarchy
             {
                 result = sr.ReadLine();
             }
-            return Deserialize(result);
+            return Deserialize(ref result);
         }
 
         #region Serialization
@@ -61,11 +61,11 @@ namespace CRUDHierarchy
 
         private void Serializeobject(object obj)
         {
-            result += "<class>" + obj.GetType().Name;
+            result += "<class>" + obj.GetType().FullName;
             FieldInfo[] fields = obj.GetType().GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
             foreach (FieldInfo field in fields)
             {
-                result += $"<field>{field.Name}:{field.FieldType.AssemblyQualifiedName}:";
+                result += $"<field>{field.Name}:{field.FieldType.FullName}:";
                 if (field.FieldType.IsPrimitive || field.FieldType == typeof(string) || field.FieldType.IsEnum)
                     result += field.GetValue(obj).ToString();
                 else
@@ -80,7 +80,7 @@ namespace CRUDHierarchy
             IEnumerator enumerator = ((IEnumerable)obj).GetEnumerator();
             
             //todo: get underlying type from enumerator
-            result += "<array>" + type.GetGenericArguments()[0].AssemblyQualifiedName;
+            result += "<array>" + type.GetGenericArguments()[0].FullName;
             while(enumerator.MoveNext())
             {
                 result += "<element>";
@@ -92,26 +92,17 @@ namespace CRUDHierarchy
 
         #endregion
 
-        private object Deserialize(string str)
+        private object Deserialize(ref string str)
         {
             string tag = CutNextTag(ref str);
-           
 
-            switch (tag)
-            {
-                case "<array>":
-                    {
-                        return DeserializeCollection(ref str);
-                    }
-                default:
-                    break;
-            }
+            return tag == "<array>" ? DeserializeCollection(ref str) : DeserializeObject(ref str);            
         }
 
         private object DeserializeCollection(ref string str)
         {
-            string typeStr = result.Substring(0, result.IndexOf(':') - 1);
-            result = result.Remove(0, typeStr.Length + 1);
+            string typeStr = str.Substring(0, str.IndexOf('<'));
+            str = str.Remove(0, typeStr.Length);
 
             Type collectionElementsType = Assembly.GetExecutingAssembly().GetType(typeStr);
             IList objects = createList(collectionElementsType);
@@ -119,11 +110,49 @@ namespace CRUDHierarchy
             string tag = CutNextTag(ref str);
             while (tag != "</array>")
             {
-                string listElement = result.Substring(0, result.IndexOf("</element>") - 1);
-                result = result.Remove(0, listElement.Length + "</element>".Length - 1);
-                objects.Add(Deserialize(listElement));
+                string listElement = str.Substring(0, str.IndexOf("</element>"));
+                str = str.Remove(0, listElement.Length + "</element>".Length);
+                objects.Add(Deserialize(ref listElement));
+                tag = CutNextTag(ref str);
             }
             return objects;
+        }
+
+        private object DeserializeObject(ref string str)
+        {
+            string typeStr = str.Substring(0, str.IndexOf('<'));
+            str = str.Remove(0, typeStr.Length);
+
+            Type objectType = Assembly.GetExecutingAssembly().GetType(typeStr);
+            FieldInfo[] fields = objectType.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic); 
+            object obj = Activator.CreateInstance(objectType);
+
+            string tag = CutNextTag(ref str);
+            while (tag != "</class>")
+            {
+                string name = str.Substring(0, str.IndexOf(':'));
+                str = str.Remove(0, name.Length + 1);
+                string fieldTypeStr = str.Substring(0, str.IndexOf(':'));
+                str = str.Remove(0, fieldTypeStr.Length + 1);
+
+                //todo: Maybe come up with faster way or get rid of serializing field types at all 
+                Type fieldType = Assembly.GetExecutingAssembly().GetType(fieldTypeStr) ?? fields.Single(field => field.Name == name).FieldType;
+
+                if(fieldType.IsEnum || fieldType.IsPrimitive || fieldType == typeof(string))
+                {
+                    object fieldValue = fieldType.IsEnum ? Enum.Parse(fieldType, str.Substring(0, str.IndexOf('<'))) : Convert.ChangeType(str.Substring(0, str.IndexOf('<')), fieldType);
+                    str = str.Remove(0, str.IndexOf('<'));
+
+                    fields.Single(field => field.Name == name).SetValue(obj, fieldValue);
+                }
+                else
+                {
+                    fields.Single(field => field.Name == name).SetValue(obj, Deserialize(ref str));
+                }
+                CutNextTag(ref str); //Cut a </field> tag
+                tag = CutNextTag(ref str);
+            }
+            return obj;
         }
 
         private IList createList(Type type)
@@ -134,7 +163,7 @@ namespace CRUDHierarchy
 
         private string CutNextTag(ref string str)
         {
-            string tag = str.Substring(0, str.IndexOf('>'));
+            string tag = str.Substring(0, str.IndexOf('>') + 1);
             str = str.Remove(0, tag.Length);
             return tag;
         }

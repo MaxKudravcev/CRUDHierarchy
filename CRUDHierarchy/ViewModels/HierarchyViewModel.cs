@@ -258,7 +258,31 @@ namespace CRUDHierarchy
 
                 //Instances = null;
                 selectedInstance = null;
-                Instances = new ObservableCollection<CRUD>(fileService.Open<CRUD>(dialogService.FilePath));
+                //todo: Maybe come up with generic solution of getting rid of duplicates between agregated fields and collection elements 
+                if (fileService.GetType() == typeof(BinaryFileService))
+                    Instances = new ObservableCollection<CRUD>(fileService.Open<CRUD>(dialogService.FilePath));
+                else
+                {
+                    ObservableCollection<CRUD> tmp = new ObservableCollection<CRUD>(fileService.Open<CRUD>(dialogService.FilePath));
+
+                    foreach (CRUD weapon in tmp)
+                    {
+                        if (typeof(Firearm).IsAssignableFrom(weapon.GetType()))
+                        {
+                            FieldInfo[] fields = weapon.GetType().GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+
+                            foreach(FieldInfo field in fields)
+                            {
+                                if (typeof(Ammo).IsAssignableFrom(field.FieldType))
+                                {
+                                    field.SetValue(weapon, tmp.Single(crud => crud.GetName() == ((CRUD)field.GetValue(weapon)).GetName()));
+                                }
+                            }
+                        }
+                    }
+
+                    Instances = tmp;
+                }
             }
         }
         
