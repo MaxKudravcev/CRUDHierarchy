@@ -1,6 +1,11 @@
-﻿namespace CRUDHierarchy
+﻿using System;
+using System.Runtime.Serialization;
+
+namespace CRUDHierarchy
 {
+    [Serializable]
     [ClassDescription("Pistol & Rifle ammo")]
+    [DataContract]
     class RegularAmmo : Ammo
     {
         public enum AmmoType
@@ -12,6 +17,7 @@
             Expansive
         }
 
+        [DataMember]
         private AmmoType type;
     }
 }

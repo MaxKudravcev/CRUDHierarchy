@@ -1,6 +1,11 @@
-﻿namespace CRUDHierarchy
+﻿using System;
+using System.Runtime.Serialization;
+
+namespace CRUDHierarchy
 {
+    [Serializable]
     [ClassDescription("Special weapon")]
+    [DataContract]
     class Special : Weapon
     {
         public enum Type
@@ -10,7 +15,9 @@
             Tranqulizer
         }
 
+        [DataMember]
         private Type type;
+        [DataMember]
         private int range;
     }
 }

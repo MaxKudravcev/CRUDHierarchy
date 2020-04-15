@@ -2,9 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.Serialization;
 
 namespace CRUDHierarchy
 {
+    [DataContract]
+    [KnownType("GetDerivedTypes")]
+    [Serializable]
     /// <summary>
     /// The main class in a Weapon Hierarchy.
     /// Contains methods for creating and updating instances
@@ -36,5 +40,10 @@ namespace CRUDHierarchy
         }
 
         public abstract string GetName();
+
+        private static Type[] GetDerivedTypes()
+        {
+            return Assembly.GetExecutingAssembly().GetTypes().Where(t => t.IsSubclassOf(typeof(CRUD))).ToArray();
+        }
     }
 }

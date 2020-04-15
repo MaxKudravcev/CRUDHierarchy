@@ -1,12 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Runtime.Serialization;
 
 namespace CRUDHierarchy
 {
+    [Serializable]
     [ClassDescription("Shotgun ammo")]
+    [DataContract]
     class ShotgunAmmo : Ammo
     {
         public enum ShotgunAmmoType
@@ -17,6 +16,7 @@ namespace CRUDHierarchy
             Combined
         }
 
+        [DataMember]
         private ShotgunAmmoType type;
     }
 }

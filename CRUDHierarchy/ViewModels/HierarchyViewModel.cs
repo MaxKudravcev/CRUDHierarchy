@@ -4,6 +4,8 @@ using System;
 using System.Reflection;
 using System.Windows.Input;
 using System.Collections.Generic;
+using Microsoft.Win32;
+using System.IO;
 
 namespace CRUDHierarchy
 {
@@ -28,18 +30,27 @@ namespace CRUDHierarchy
 
         //A collection of all instances, that were created
         public ObservableCollection<CRUD> Instances { get; set; }
+        
+        //All available FileServices
+        private Type[] fileServices;
 
+        //Current DialogService
+        private IDialogService dialogService;
         #endregion
 
 
 
-        #region CRUD commands
+        #region Commands
         //Commands for creating, updating and deleting instances
         public ICommand CreateCommand { get; set; }
 
         public ICommand UpdateCommand { get; set; }
 
         public ICommand DeleteCommand { get; set; }
+
+        public ICommand LoadCommand { get; set; }
+
+        public ICommand SaveCommand { get; set; }
         #endregion
 
 
@@ -171,6 +182,15 @@ namespace CRUDHierarchy
         }
 
         /// <summary>
+        /// Check if there are some instances that can be saved
+        /// </summary>
+        /// <returns></returns>
+        private bool CanSave()
+        {
+            return Instances.Count > 0;
+        }
+
+        /// <summary>
         /// Create an instance of the selected type and pass a list of arguments (got from View) to a Create metod
         /// </summary>
         private void Create()
@@ -214,12 +234,64 @@ namespace CRUDHierarchy
             SelectedInstance = null;
         }
 
+        /// <summary>
+        /// Serialize the Instances collection to a choosen format
+        /// </summary>
+        private void Save()
+        {
+            if (dialogService.SaveFileDialog() == true)
+            {
+                Type fileServiceType = fileServices.Single(fs => 
+                     ((SerializationFormatAttribute)fs.GetCustomAttribute(typeof(SerializationFormatAttribute))).FilterString.EndsWith(Path.GetExtension(dialogService.FilePath)));
+                IFileService fileService = Activator.CreateInstance(fileServiceType) as IFileService;
+                fileService.Save<CRUD>(dialogService.FilePath, Instances.ToList());
+            }
+        }
+
+        private void Load()
+        {
+            if (dialogService.OpenFileDialog() == true)
+            {
+                Type fileServiceType = fileServices.Single(fs =>
+                     ((SerializationFormatAttribute)fs.GetCustomAttribute(typeof(SerializationFormatAttribute))).FilterString.EndsWith(Path.GetExtension(dialogService.FilePath)));
+                IFileService fileService = Activator.CreateInstance(fileServiceType) as IFileService;
+
+                //Instances = null;
+                selectedInstance = null;
+                //todo: Maybe come up with generic solution of getting rid of duplicates between agregated fields and collection elements 
+                if (fileService.GetType() == typeof(BinaryFileService))
+                    Instances = new ObservableCollection<CRUD>(fileService.Open<CRUD>(dialogService.FilePath));
+                else
+                {
+                    ObservableCollection<CRUD> tmp = new ObservableCollection<CRUD>(fileService.Open<CRUD>(dialogService.FilePath));
+
+                    foreach (CRUD weapon in tmp)
+                    {
+                        if (typeof(Firearm).IsAssignableFrom(weapon.GetType()))
+                        {
+                            FieldInfo[] fields = weapon.GetType().GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+
+                            foreach(FieldInfo field in fields)
+                            {
+                                if (typeof(Ammo).IsAssignableFrom(field.FieldType))
+                                {
+                                    field.SetValue(weapon, tmp.Single(crud => crud.GetName() == ((CRUD)field.GetValue(weapon)).GetName()));
+                                }
+                            }
+                        }
+                    }
+
+                    Instances = tmp;
+                }
+            }
+        }
+        
         #endregion
 
 
 
         #region Constructor
-        public HierarchyViewModel()
+        public HierarchyViewModel(IDialogService dialogService)
         {
             GetClasses();
             Fields = new ObservableCollection<Field>();
@@ -227,6 +299,11 @@ namespace CRUDHierarchy
             CreateCommand = new RelayCommand<object>(obj => Create(), obj => AreFieldsFilled());
             UpdateCommand = new RelayCommand<object>(obj => Update(), obj => CanUpdate());
             DeleteCommand = new RelayCommand<object>(obj => Delete(), obj => CanDelete());
+            SaveCommand = new RelayCommand<object>(obj => Save(), obj => CanSave());
+            LoadCommand = new RelayCommand<object>(obj => Load());
+
+            this.dialogService = dialogService;
+            fileServices = Assembly.GetExecutingAssembly().GetTypes().Where(t => typeof(IFileService).IsAssignableFrom(t) && !t.IsInterface).ToArray();
         }
         #endregion
     }
