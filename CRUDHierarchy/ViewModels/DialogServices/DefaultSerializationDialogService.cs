@@ -1,5 +1,7 @@
 ﻿using Microsoft.Win32;
+using PluginsSupport;
 using System;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Windows;
@@ -8,17 +10,18 @@ namespace CRUDHierarchy
 {
     /// <summary>
     /// Default Win32 implementation of IDialogService
-    /// !This DialogService is bound to available FileServices!
+    /// !This DialogService is bound to available FileServices and Plugins!
     /// </summary>
     class DefaultSerializationDialogService : IDialogService
     {
         public string FilePath { get; set; }
-        private string filters;
+        private string OpenFilters;
+        private string SaveFilters;
 
         public bool OpenFileDialog()
         {
             OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.Filter = filters;
+            openFileDialog.Filter = OpenFilters;
             if (openFileDialog.ShowDialog() == true)
             {
                 FilePath = openFileDialog.FileName;
@@ -30,7 +33,7 @@ namespace CRUDHierarchy
         public bool SaveFileDialog()
         {
             SaveFileDialog saveFileDialog = new SaveFileDialog();
-            saveFileDialog.Filter = filters;
+            saveFileDialog.Filter = SaveFilters;
             if (saveFileDialog.ShowDialog() == true)
             {
                 FilePath = saveFileDialog.FileName;
@@ -46,9 +49,12 @@ namespace CRUDHierarchy
 
         private void GetFilters()
         {
+            Type[] plugins = Directory.GetFiles("Plugins/").Select(name => Assembly.LoadFrom(name).GetType(Path.GetFileNameWithoutExtension(name) + ".Archiver", true, true)).ToArray();
             Type[] fileServices = Assembly.GetExecutingAssembly().GetTypes().Where(t => typeof(IFileService).IsAssignableFrom(t) && !t.IsInterface).ToArray();
             string[] formatAttributes = fileServices.Select(fs => ((SerializationFormatAttribute)fs.GetCustomAttribute(typeof(SerializationFormatAttribute))).FilterString).ToArray();
-            filters = string.Join("|", formatAttributes);
+            SaveFilters = string.Join("|", formatAttributes);
+            formatAttributes = formatAttributes.Concat(plugins.Select(plugin => ((PluginExtensionAttribute)plugin.GetCustomAttribute(typeof(PluginExtensionAttribute))).FilterString)).ToArray();
+            OpenFilters = string.Join("|", formatAttributes);
         }
 
         public DefaultSerializationDialogService()

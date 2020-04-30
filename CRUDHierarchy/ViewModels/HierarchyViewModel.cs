@@ -4,8 +4,8 @@ using System;
 using System.Reflection;
 using System.Windows.Input;
 using System.Collections.Generic;
-using Microsoft.Win32;
 using System.IO;
+using PluginsSupport;
 
 namespace CRUDHierarchy
 {
@@ -36,6 +36,12 @@ namespace CRUDHierarchy
 
         //Current DialogService
         private IDialogService dialogService;
+
+        //A collection of plugins, found in 'Plugins' folder
+        public ObservableCollection<string> Plugins { get; set; }
+        
+        //Selected plugin
+        public string SelectedPlugin { get; set; }
         #endregion
 
 
@@ -141,6 +147,31 @@ namespace CRUDHierarchy
             }
         }
 
+        /// <summary>
+        /// Finds correct plugin based on file extension
+        /// </summary>
+        /// <param name="path">Path to the file</param>
+        /// <returns>An instance of used archivator (if such plugin exists)</returns>
+        private object GetPluginByPath(string path)
+        {
+            List<Type> pluginTypes = new List<Type>();
+            foreach (string plugin in Plugins)
+            {
+                if (plugin != "-NONE-")
+                    pluginTypes.Add(Assembly.LoadFrom("Plugins/" + plugin + ".dll").GetType(plugin + ".Archiver", true, true));
+            }
+            List<object> objects = new List<object>();
+            foreach (Type plugin in pluginTypes)
+            {
+                objects.Add(Activator.CreateInstance(plugin));
+            }
+
+            for (int i = 0; i < objects.Count; i++)            
+                if (dialogService.FilePath.EndsWith((string)pluginTypes[i].InvokeMember("extension", BindingFlags.GetField, null, objects[i], null)))                
+                    return objects[i];
+            return null;        
+        }
+
         #endregion
 
 
@@ -244,47 +275,110 @@ namespace CRUDHierarchy
                 Type fileServiceType = fileServices.Single(fs => 
                      ((SerializationFormatAttribute)fs.GetCustomAttribute(typeof(SerializationFormatAttribute))).FilterString.EndsWith(Path.GetExtension(dialogService.FilePath)));
                 IFileService fileService = Activator.CreateInstance(fileServiceType) as IFileService;
-                fileService.Save<CRUD>(dialogService.FilePath, Instances.ToList());
+                using (MemoryStream stream = new MemoryStream())
+                {                                        
+                    fileService.Save<CRUD>(stream, Instances.ToList());
+                    stream.Position = 0;
+                    string tmp = dialogService.FilePath;
+
+                    if (SelectedPlugin != "-NONE-")
+                    {
+                        Assembly plugin;
+                        try
+                        {
+                             plugin = Assembly.LoadFrom("Plugins/" + SelectedPlugin + ".dll");
+                        }
+                        catch (Exception)
+                        {
+                            throw new Exception("ERROR: Plugin not found.");
+                        }
+
+                        Type t = plugin.GetType(SelectedPlugin + ".Archiver", true, true);
+                        IPlugin obj = (IPlugin)Activator.CreateInstance(t);
+                        tmp += ((PluginExtensionAttribute)t.GetCustomAttribute(typeof(PluginExtensionAttribute))).FilterString.Split('*').Last();
+
+                        using (FileStream fs = new FileStream(tmp, FileMode.Create))
+                        {
+                            obj.Compress(stream, fs);
+                        }
+                    }
+                    else
+                    {
+                        using (FileStream fs = new FileStream(tmp, FileMode.Create))
+                        {
+                            stream.CopyTo(fs);
+                        }
+                    }
+                }
             }
         }
-
+        
+        /// <summary>
+        /// Deserialize selected file to a collection of CRUD
+        /// </summary>
         private void Load()
         {
             if (dialogService.OpenFileDialog() == true)
             {
-                Type fileServiceType = fileServices.Single(fs =>
-                     ((SerializationFormatAttribute)fs.GetCustomAttribute(typeof(SerializationFormatAttribute))).FilterString.EndsWith(Path.GetExtension(dialogService.FilePath)));
-                IFileService fileService = Activator.CreateInstance(fileServiceType) as IFileService;
-
-                //Instances = null;
-                selectedInstance = null;
-                //todo: Maybe come up with generic solution of getting rid of duplicates between agregated fields and collection elements 
-                if (fileService.GetType() == typeof(BinaryFileService))
-                    Instances = new ObservableCollection<CRUD>(fileService.Open<CRUD>(dialogService.FilePath));
-                else
+                ObservableCollection<CRUD> tmp;
+                using (MemoryStream stream = new MemoryStream())
                 {
-                    ObservableCollection<CRUD> tmp = new ObservableCollection<CRUD>(fileService.Open<CRUD>(dialogService.FilePath));
-
-                    foreach (CRUD weapon in tmp)
+                    using (FileStream fs = new FileStream(dialogService.FilePath, FileMode.Open))
                     {
-                        if (typeof(Firearm).IsAssignableFrom(weapon.GetType()))
+                        try
                         {
-                            FieldInfo[] fields = weapon.GetType().GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                            Type pluginType = Directory.GetFiles("Plugins/").Select(name =>
+                                              Assembly.LoadFrom(name).GetType(Path.GetFileNameWithoutExtension(name) + ".Archiver", true, true)).Single(archiver =>
+                                              ((PluginExtensionAttribute)archiver.GetCustomAttribute(typeof(PluginExtensionAttribute))).FilterString.EndsWith(Path.GetExtension(dialogService.FilePath)));
+                            IPlugin plugin = (IPlugin)Activator.CreateInstance(pluginType);
+                            plugin.Decompress(fs, stream);
+                        }
+                        catch (Exception)
+                        {
+                            fs.CopyTo(stream);
+                        }
+                    }
+                    stream.Position = 0;
+                    string extension = dialogService.FilePath.Split('.')[1];
 
-                            foreach(FieldInfo field in fields)
+                    Type fileServiceType;
+                    try
+                    {
+                        fileServiceType = fileServices.Single(fs =>
+                         ((SerializationFormatAttribute)fs.GetCustomAttribute(typeof(SerializationFormatAttribute))).FilterString.EndsWith(extension));
+                    }
+                    catch (Exception)
+                    {
+                        throw new Exception("ERROR: Invalid file format");
+                    }
+                    IFileService fileService = Activator.CreateInstance(fileServiceType) as IFileService;
+
+                    //Instances = null;
+                    selectedInstance = null;
+                    tmp = new ObservableCollection<CRUD>(fileService.Open<CRUD>(stream));
+                    
+                }
+                //todo: Maybe come up with generic solution of getting rid of duplicates between agregated fields and collection elements        
+                foreach (CRUD weapon in tmp)
+                {
+                    if (typeof(Firearm).IsAssignableFrom(weapon.GetType()))
+                    {
+                        FieldInfo[] fields = weapon.GetType().GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+
+                        foreach (FieldInfo field in fields)
+                        {
+                            if (typeof(Ammo).IsAssignableFrom(field.FieldType))
                             {
-                                if (typeof(Ammo).IsAssignableFrom(field.FieldType))
-                                {
-                                    field.SetValue(weapon, tmp.Single(crud => crud.GetName() == ((CRUD)field.GetValue(weapon)).GetName()));
-                                }
+                                field.SetValue(weapon, tmp.Single(crud => crud.GetName() == ((CRUD)field.GetValue(weapon)).GetName()));
                             }
                         }
                     }
-
-                    Instances = tmp;
                 }
+                Instances = tmp;
             }
+  
         }
+        
         
         #endregion
 
@@ -304,6 +398,10 @@ namespace CRUDHierarchy
 
             this.dialogService = dialogService;
             fileServices = Assembly.GetExecutingAssembly().GetTypes().Where(t => typeof(IFileService).IsAssignableFrom(t) && !t.IsInterface).ToArray();
+
+            Plugins = new ObservableCollection<string>(Directory.GetFiles("Plugins/").Select(str => Path.GetFileNameWithoutExtension(str)));
+            Plugins.Add("-NONE-");
+            SelectedPlugin = "-NONE-";
         }
         #endregion
     }

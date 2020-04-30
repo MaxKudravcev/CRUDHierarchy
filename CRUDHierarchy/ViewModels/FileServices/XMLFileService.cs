@@ -7,26 +7,19 @@ namespace CRUDHierarchy
     [SerializationFormat("XML (*.xml)| *.xml")]
     class XMLFileService : IFileService
     {
-        public List<T> Open<T>(string filename)
+        public List<T> Open<T>(Stream fs)
         {
             DataContractSerializer dataContractSerializer = new DataContractSerializer(typeof(List<T>));
-            List<T> objects = new List<T>();
-
-            using (FileStream fs = new FileStream(filename, FileMode.Open))
-            {
-                objects = dataContractSerializer.ReadObject(fs) as List<T>;
-            }
+            List<T> objects = new List<T>();          
+            objects = dataContractSerializer.ReadObject(fs) as List<T>;  
+            
             return objects;
         }
 
-        public void Save<T>(string filename, List<T> objects)
+        public void Save<T>(Stream fs, List<T> objects)
         {
             DataContractSerializer dataContractSerializer = new DataContractSerializer(typeof(List<T>));
-
-            using (FileStream fs = new FileStream(filename, FileMode.Create))
-            {
-                dataContractSerializer.WriteObject(fs, objects);
-            }
+            dataContractSerializer.WriteObject(fs, objects);
         }
     }
 }

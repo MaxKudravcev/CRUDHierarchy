@@ -35,18 +35,16 @@ namespace CRUDHierarchy
         {
             result = "";
             Serialize(obj);
-            using (StreamWriter sw = new StreamWriter(stream))
-            {
-                sw.WriteLine(result);
-            }
+            StreamWriter sw = new StreamWriter(stream);
+            sw.WriteLine(result);
+            sw.Flush();
         }
 
         public object Deserialize(Stream stream)
         {
-            using (StreamReader sr = new StreamReader(stream))
-            {
-                result = sr.ReadLine();
-            }
+            StreamReader sr = new StreamReader(stream);            
+            result = sr.ReadLine();    
+            
             return Deserialize(ref result);
         }
 

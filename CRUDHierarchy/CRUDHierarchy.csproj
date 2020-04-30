@@ -136,7 +136,15 @@
   <ItemGroup>
     <Resource Include="FodyWeavers.xml" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Folder Include="Plugins\" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\PluginsSupport\PluginsSupport.csproj">
+      <Project>{c203803e-df47-4c35-a221-00c8d61559c3}</Project>
+      <Name>PluginsSupport</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>

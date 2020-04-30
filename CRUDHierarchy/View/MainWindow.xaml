@@ -94,8 +94,14 @@
                         <ColumnDefinition />
                         <ColumnDefinition />
                     </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition />
+                        <RowDefinition />
+                    </Grid.RowDefinitions>
                     <Button Margin="5 0" Grid.Column="0" Content="Load" Command="{Binding LoadCommand}" />
                     <Button Margin="5 0" Grid.Column="1" Content="Save" Command="{Binding SaveCommand}" />
+                    <TextBlock Grid.Row="1" Text="Plugins:" FontSize="14" TextAlignment="Right" Margin="0 5" />
+                    <ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{Binding Plugins}" SelectedItem="{Binding SelectedPlugin}"  Margin="5 5"/>
                 </Grid>
                 <ListView x:Name="InstancesListView" ItemsSource="{Binding Instances}" SelectionChanged="InstancesListView_SelectionChanged" SelectionMode="Single">
                     <ListView.ItemTemplate>

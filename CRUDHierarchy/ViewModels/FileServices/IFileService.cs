@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.IO;
 
 namespace CRUDHierarchy
 {
@@ -7,7 +8,7 @@ namespace CRUDHierarchy
     /// </summary>
     interface IFileService
     {
-        List<T> Open<T> (string filename);
-        void Save<T>(string filename, List<T> objects);
+        List<T> Open<T> (Stream fs);
+        void Save<T>(Stream fs, List<T> objects);
     }
 }
